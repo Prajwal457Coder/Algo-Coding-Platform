@@ -8,94 +8,173 @@ const Submission= require('../models/submission')
 const nodemailer=require('nodemailer')
 require('dotenv').config();
 
-const register = async (req,res)=>{
+// const register = async (req,res)=>{
     
-    try{
-        // validate the data;
-        // if(req.result.role!='admin')
-        // throw new Error("Invalid Credential")
-       validate(req.body); 
-      const {firstName, emailId, password}  = req.body;
-      req.body.password = await bcrypt.hash(password, 10);
-      req.body.role='user' //ab koi bhi aaye as a user hi aayega register path se
+//     try{
+//         // validate the data;
+//         // if(req.result.role!='admin')
+//         // throw new Error("Invalid Credential")
+//        validate(req.body); 
+//       const {firstName, emailId, password}  = req.body;
+//       req.body.password = await bcrypt.hash(password, 10);
+//       req.body.role='user' //ab koi bhi aaye as a user hi aayega register path se
 
     
     
-     const user =  await User.create(req.body);
-     const token =  jwt.sign({_id:user._id , emailId:emailId,role:'user'},process.env.JWT_KEY,{expiresIn: "2d"});
-      const reply= {
-            firstName:user.firstName,
-            emailId:user.emailId,
-            _id:user.id,
-            role:user.role
-        }
+//      const user =  await User.create(req.body);
+//      const token =  jwt.sign({_id:user._id , emailId:emailId,role:'user'},process.env.JWT_KEY,{expiresIn: "2d"});
+//       const reply= {
+//             firstName:user.firstName,
+//             emailId:user.emailId,
+//             _id:user.id,
+//             role:user.role
+//         }
 
-     res.cookie('token',token,{maxAge:  2 * 24 * 60 * 60 * 1000});
-// res.cookie("token", token, {
-//    httpOnly: true,
-//    secure: false,
-//    sameSite: "none",
-//    path: "/",
-//    maxAge: 60 * 60 * 1000
-// });
-     //res.status(201).send("User Registered Successfully");
-     res.status(201).json({
-            user:reply,
-            message:"User Registered Successfully"
-        })
-    }
-    catch(err){
-        res.status(400).send("Error: "+err.message);
-    }
-}
+//      res.cookie('token',token,{maxAge:  2 * 24 * 60 * 60 * 1000});
+// // res.cookie("token", token, {
+// //    httpOnly: true,
+// //    secure: false,
+// //    sameSite: "none",
+// //    path: "/",
+// //    maxAge: 60 * 60 * 1000
+// // });
+//      //res.status(201).send("User Registered Successfully");
+//      res.status(201).json({
+//             user:reply,
+//             message:"User Registered Successfully"
+//         })
+//     }
+//     catch(err){
+//         res.status(400).send("Error: "+err.message);
+//     }
+// }
 
 
-const login = async (req,res)=>{
+// const login = async (req,res)=>{
 
-    try{
-        const {emailId, password} = req.body;
+//     try{
+//         const {emailId, password} = req.body;
 
-        if(!emailId)
-            throw new Error("Invalid Credentials");
-        if(!password)
-            throw new Error("Invalid Credentials");
+//         if(!emailId)
+//             throw new Error("Invalid Credentials");
+//         if(!password)
+//             throw new Error("Invalid Credentials");
 
-        const user = await User.findOne({emailId});
+//         const user = await User.findOne({emailId});
 
-        const match = await bcrypt.compare(password,user.password);
+//         const match = await bcrypt.compare(password,user.password);
 
-        if(!match)
-            throw new Error("Invalid Credentials");
+//         if(!match)
+//             throw new Error("Invalid Credentials");
 
-        const reply= {
-            firstName:user.firstName,
-            emailId:user.emailId,
-            _id:user.id,
-            role:user.role,
-        }
+//         const reply= {
+//             firstName:user.firstName,
+//             emailId:user.emailId,
+//             _id:user.id,
+//             role:user.role,
+//         }
 
-        const token =  jwt.sign({_id:user._id , emailId:emailId, role:user.role},process.env.JWT_KEY,{expiresIn: "2d"});
-        res.cookie('token',token,{maxAge:  2 * 24 * 60 * 60 * 1000});
-//         res.cookie("token", token, {
-//    httpOnly: true,
-//    secure: false,
-//    sameSite: "none",
-//    path: "/",
-//    maxAge: 60 * 60 * 1000
-// });
-        //res.status(200).send("Logged In Succeessfully");
-        res.status(200).json({
-            user:reply,
-            message:"Loggin Successfully"
-        })
-    }
-    catch(err){
-    res.status(401).json({ message: err.message });
-}
-}
+//         const token =  jwt.sign({_id:user._id , emailId:emailId, role:user.role},process.env.JWT_KEY,{expiresIn: "2d"});
+//         res.cookie('token',token,{maxAge:  2 * 24 * 60 * 60 * 1000});
+// //         res.cookie("token", token, {
+// //    httpOnly: true,
+// //    secure: false,
+// //    sameSite: "none",
+// //    path: "/",
+// //    maxAge: 60 * 60 * 1000
+// // });
+//         //res.status(200).send("Logged In Succeessfully");
+//         res.status(200).json({
+//             user:reply,
+//             message:"Loggin Successfully"
+//         })
+//     }
+//     catch(err){
+//     res.status(401).json({ message: err.message });
+// }
+// }
 
 
 // logOut feature
+
+
+const register = async (req, res) => {
+  try {
+    validate(req.body);
+    const { firstName, emailId, password } = req.body;
+
+    const existingUser = await User.findOne({ emailId });
+    if (existingUser) {
+      throw new Error("An account with this email already exists. Please login instead.");
+    }
+
+    req.body.password = await bcrypt.hash(password, 10);
+    req.body.role = 'user';
+
+    const user = await User.create(req.body);
+    const token = jwt.sign(
+      { _id: user._id, emailId: emailId, role: 'user' },
+      process.env.JWT_KEY,
+      { expiresIn: "2d" }
+    );
+    const reply = {
+      firstName: user.firstName,
+      emailId: user.emailId,
+      _id: user.id,
+      role: user.role
+    };
+
+    res.cookie('token', token, { maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.status(201).json({ user: reply, message: "User Registered Successfully" });
+  } catch (err) {
+    res.status(400).json({ message: err.message });   // ← JSON, not .send()
+  }
+};
+
+
+const login = async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+    if (!emailId)
+      throw new Error("Invalid Credentials");
+    if (!password)
+      throw new Error("Invalid Credentials");
+
+    const user = await User.findOne({ emailId });
+
+    if (!user)
+      throw new Error("Invalid Credentials Please check your email or password");   // don't reveal whether email exists
+
+    const match = await bcrypt.compare(password, user.password);
+
+    if (!match)
+      throw new Error("Invalid Credentials");
+
+    const reply = {
+      firstName: user.firstName,
+      emailId: user.emailId,
+      _id: user.id,
+      role: user.role,
+    };
+
+    const token = jwt.sign(
+      { _id: user._id, emailId: emailId, role: user.role },
+      process.env.JWT_KEY,
+      { expiresIn: "2d" }
+    );
+
+    res.cookie('token', token, { maxAge: 7 * 24 * 60 * 60 * 1000 });
+
+    res.status(200).json({
+      user: reply,
+      message: "Loggin Successfully"
+    });
+  } catch (err) {
+    res.status(401).json({ message: err.message });
+  }
+};
+
+
 
 const logout = async(req,res)=>{
 
